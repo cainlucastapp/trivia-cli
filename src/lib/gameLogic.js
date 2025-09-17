@@ -3,8 +3,13 @@ const chalk = require("chalk");
 const inquirer = require("inquirer");
 
 
+// Visual timer
+const { reserveListRow, runWithTimer } = require("./visualTimer");
+
+
 // Questions data
-const questions = require("../data/questions");
+const questions = require("../data/questions").default;
+
 
 // Game state functions
 const { showScore, resetScore } = require("./state");
@@ -17,7 +22,7 @@ async function showMainMenu(gameState) {
         {
             type: "list",
             name: "action",
-            message: "\nWelcome to Trivia CLI! \n80s Movie Edition\n\nSelect an option:",
+            message: "\n=== Welcome to Trivia CLI! === \n      80s Movie Edition\n\nSelect an option:",
             choices: [
                 // Start game
                 { name: "Start Game", value: "start" },
@@ -30,10 +35,11 @@ async function showMainMenu(gameState) {
 
     // Handle menu action
     switch (action) {
-        // Exit
+        // Exit program
         case "quit":
             console.log(chalk.cyan("Goodbye! \n"));
             process.exit(0);
+            break;
 
         // Start game
         case "start":
@@ -63,7 +69,7 @@ async function startGame(gameState) {
         // Check the answer and update score
         if (timedOut) {
             gameState.timeouts += 1;
-            console.log(chalk.yellow("\nTime is up. \n"));
+            console.log(chalk.yellow("Time is up. \n"));
         } else if (playerAnswer === question.answerIndex) {
             gameState.correct += 1;
             console.log(chalk.green("Correct! \n"));
@@ -72,7 +78,7 @@ async function startGame(gameState) {
             console.log(chalk.red(`Incorrect! The correct answer was: ${question.choices[question.answerIndex]} \n`));
         }
 
-		// If there are more questions, ask to continue or exit
+		// If there are more questions, ask to continue questions or exit game
 		const isLastQuestion = questionIndex === questions.length - 1;
 		if (!isLastQuestion) {
 			const { next } = await inquirer.prompt([
@@ -81,8 +87,10 @@ async function startGame(gameState) {
 					name: "next",
 					message: "Continue or exit to main menu?",
 					choices: [
-						{ name: "Next Question", value: "continue" }, // proceed to next question
-						{ name: "Exit to Main Menu", value: "exit" }  // stop and return to menu
+                        // player proceeds to next question
+						{ name: "Next Question", value: "continue" },
+                        // player quits game and return to menu
+						{ name: "Exit to Main Menu", value: "exit" }  
 					],
 					default: "continue",
                     prefix: ""
@@ -101,49 +109,42 @@ async function startGame(gameState) {
 
 // Ask one question and return the player answer or timeout
 async function askQuestion(question) {
-    
-    // Prints the question
     console.log(chalk.cyan(`\nQuestion: ${question.question}`));
 
-    // Answers list
+    // Answer list
     const answerList = question.choices.map((text, index) => ({
         name: text,
-        value: index
+        value: index,
     }));
 
-    // Create the prompt and keep its UI handle on the returned promise
+    // Prevent timer overlap (adds a blank row + sets pageSize)
+    const { choices, pageSize } = reserveListRow(answerList);
+
+    // Creates the answer list prompt
     const promptPromise = inquirer.prompt([
-        {
-            type: "list",
-            name: "answer",
-            message: "Select Answer:",
-            choices: answerList,
-            loop: false,
-            prefix: ""
-        }
+    {
+        type: "list",
+        name: "answer",
+        message: "Select Answer: (Use arrow keys)",
+        choices,
+        pageSize,
+        loop: false,
+        prefix: "",
+    },
     ]);
 
-    // Build a timeout that closes the prompt and resolves with { timedOut: true }
-    const timeoutPromise = new Promise((resolve) => {
-        const id = setTimeout(() => {
-        try { if (promptPromise.ui) promptPromise.ui.close(); } catch {}
-        resolve({ timedOut: true });
-    }, 10000);
-
-    // If the player answers first, clear the timeout
-    promptPromise.finally(() => clearTimeout(id));
+    // Timer fully managed inside visualTimer.js
+    const result = await runWithTimer(promptPromise, {
+        seconds: 10,
+        mapAnswer: ({ answer }) => ({ answerIndex: answer }),
     });
 
-    // Promise race: player answer vs timeout
-    const result = await Promise.race([
-        promptPromise.then(({ answer }) => ({ answerIndex: answer })),
-        timeoutPromise
-    ]);
-
-    // Small spacer to separate from the next prompt rendering
+    // spacer
     console.log("");
 
-    return result;
+    // Returns answerIndex or timedOut: true
+    return result; 
 }
+
 
 module.exports = { showMainMenu };
