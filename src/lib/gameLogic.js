@@ -8,7 +8,7 @@ const { reserveListRow, runWithTimer } = require("./visualTimer");
 
 
 // Questions data
-const questions = require("../data/questions").default;
+const questions = require("../data/questions");
 
 
 // Game state functions
@@ -35,11 +35,11 @@ async function showMainMenu(gameState) {
 
     // Handle menu action
     switch (action) {
-        // Exit program
+        // Exit
         case "quit":
             console.log(chalk.cyan("Goodbye! \n"));
             process.exit(0);
-            break;
+            break
 
         // Start game
         case "start":
@@ -147,4 +147,4 @@ async function askQuestion(question) {
 }
 
 
-module.exports = { showMainMenu };
+module.exports = { showMainMenu, startGame, askQuestion };

@@ -3,6 +3,7 @@ const { program } = require("commander");
 const gameState = require("../src/lib/state");  
 const { showMainMenu } = require("../src/lib/gameLogic");
 
+
 // CLI initialization
 showMainMenu(gameState);
 
