@@ -3,10 +3,6 @@ const chalk = require("chalk");
 const inquirer = require("inquirer");
 
 
-// Visual timer
-const { reserveListRow, runWithTimer } = require("./visualTimer");
-
-
 // Questions data
 const questions = require("../data/questions");
 
@@ -61,10 +57,10 @@ async function startGame(gameState) {
 
 		// Ask the question and wait for the player's choice
 		const result = await askQuestion(question);
-        
+
         // Player's answer
-        const playerAnswer = result.answerIndex
-        const timedOut = Boolean(result.timedOut);
+        const playerAnswer = result.answerIndex;
+        const timedOut = result.timer;
 
         // Check the answer and update score
         if (timedOut) {
@@ -117,32 +113,52 @@ async function askQuestion(question) {
         value: index,
     }));
 
-    // Prevent timer overlap (adds a blank row + sets pageSize)
-    const { choices, pageSize } = reserveListRow(answerList);
+    // Initialize timer variables
+    let timedOut = false;     
+    let remainingTime = 10;
 
+    // Visual timer bottom bar
+    const bottomBar = new inquirer.ui.BottomBar();
+
+    // Start timer to count down every second
+    const timerId = setInterval(() => {
+        // Decrease remaining time
+        remainingTime -= 1;
+
+        // Check if time has run out
+        if (remainingTime <= 0) {
+            // Time's up
+            clearInterval(timerId);
+            // Set timeout result
+            timedOut = true;
+            // Simulate pressing Enter to submit no answer
+            process.stdin.emit("data", Buffer.from("\n"));
+        }
+
+       // Increment every second 
+    }, 1000);
+    
     // Creates the answer list prompt
-    const promptPromise = inquirer.prompt([
-    {
-        type: "list",
-        name: "answer",
-        message: "Select Answer: (Use arrow keys)",
-        choices,
-        pageSize,
-        loop: false,
-        prefix: "",
-    },
+    const { answer } = await inquirer.prompt([
+        {
+            type: "list",
+            name: "answer",
+            message: "Select Answer: ",
+            choices: answerList,
+            pageSize: answerList.length,
+        },
     ]);
+    
+    // Stop the countdown if it’s still running
+    clearInterval(timerId);
 
-    // Timer fully managed inside visualTimer.js
-    const result = await runWithTimer(promptPromise, {
-        seconds: 10,
-        mapAnswer: ({ answer }) => ({ answerIndex: answer }),
-    });
+    // Player Answer
+    const result = { answerIndex: answer, timer: timedOut };
 
     // spacer
     console.log("");
 
-    // Returns answerIndex or timedOut: true
+    // Returns answerIndex & timer status
     return result; 
 }
 
