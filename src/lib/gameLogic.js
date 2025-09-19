@@ -116,12 +116,19 @@ async function askQuestion(question) {
     // Initialize timer variables
     let timedOut = false;     
     let remainingTime = 10;
-
+    
     // Visual timer bottom bar
     const bottomBar = new inquirer.ui.BottomBar();
+    
+    // add a spacer at the start of answer list
+    answerList.push(new inquirer.Separator());
 
     // Start timer to count down every second
     const timerId = setInterval(() => {
+                
+        // Update bottom bar with remaining time
+        bottomBar.updateBottomBar(chalk.yellow(`Time Remaining: ${remainingTime} seconds`));
+
         // Decrease remaining time
         remainingTime -= 1;
 
@@ -134,16 +141,17 @@ async function askQuestion(question) {
             // Simulate pressing Enter to submit no answer
             process.stdin.emit("data", Buffer.from("\n"));
         }
+        // Increment every second 
+    },  1000);
 
-       // Increment every second 
-    }, 1000);
+   
     
     // Creates the answer list prompt
     const { answer } = await inquirer.prompt([
         {
             type: "list",
             name: "answer",
-            message: "Select Answer: ",
+            message: "",
             choices: answerList,
             pageSize: answerList.length,
         },
