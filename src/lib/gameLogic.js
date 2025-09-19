@@ -1,7 +1,6 @@
 // Dependencies
 const chalk = require("chalk");
-const inquirer = require("inquirer");
-
+const { Select } = require("enquirer");
 
 // Questions data
 const questions = require("../data/questions");
@@ -9,25 +8,30 @@ const questions = require("../data/questions");
 
 // Game state functions
 const { showScore, resetScore } = require("./state");
+const { format } = require("path");
 
 
 // Main menu
 async function showMainMenu(gameState) {
     // Show menu options
-    const { action } = await inquirer.prompt([
-        {
-            type: "list",
-            name: "action",
-            message: "\n=== Welcome to Trivia CLI! === \n      80s Movie Edition\n\nSelect an option:",
-            choices: [
-                // Start game
-                { name: "Start Game", value: "start" },
-                // Quit game
-                { name: "Quit \n", value: "quit" }
-            ], 
-            prefix: ""
-        }
-    ]);
+    const prompt = new Select({
+        name: "action",
+        message: "\n=== Welcome to Trivia CLI! === \n      80s Movie Edition\n\nSelect an option:",
+        prefix: "",
+        hint: "",
+        choices: [
+            // Start game
+            { name: "start", message: "Start Game" },
+            // Quit game
+            { name: "quit",  message: "Quit" }
+        ],
+        initial: 0,
+        clear: true,
+        format: () => ""
+    });
+
+    // Await the player's input
+    const action = await prompt.run();
 
     // Handle menu action
     switch (action) {
@@ -65,33 +69,33 @@ async function startGame(gameState) {
         // Check the answer and update score
         if (timedOut) {
             gameState.timeouts += 1;
-            console.log(chalk.yellow("Time is up. \n"));
+            console.log(chalk.yellow("\nTime is up. \n"));
         } else if (playerAnswer === question.answerIndex) {
             gameState.correct += 1;
-            console.log(chalk.green("Correct! \n"));
+            console.log(chalk.green(`\nCorrect! ${question.choices[question.answerIndex]} \n`));
         } else {
             gameState.incorrect += 1;
-            console.log(chalk.red(`Incorrect! The correct answer was: ${question.choices[question.answerIndex]} \n`));
+            console.log(chalk.red(`\nIncorrect! The correct answer was: ${question.choices[question.answerIndex]} \n`));
         }
 
 		// If there are more questions, ask to continue questions or exit game
 		const isLastQuestion = questionIndex === questions.length - 1;
 		if (!isLastQuestion) {
-			const { next } = await inquirer.prompt([
-				{
-					type: "list",
+			const prompt = new Select({
 					name: "next",
 					message: "Continue or exit to main menu?",
 					choices: [
                         // player proceeds to next question
-						{ name: "Next Question", value: "continue" },
+						{ name: "continue", message: "Next Question" },
                         // player quits game and return to menu
-						{ name: "Exit to Main Menu", value: "exit" }  
+						{ name: "exit", message: "Exit to Main Menu" }
 					],
-					default: "continue",
+					initial: 0, // default "continue"
                     prefix: ""
-				}
-			]);
+				});
+
+            // Await the player's input        
+            const next = await prompt.run();
 
 			// Stop early if exit is chosen
 			if (next === "exit") break;
@@ -109,28 +113,36 @@ async function askQuestion(question) {
 
     // Answer list
     const answerList = question.choices.map((text, index) => ({
-        name: text,
-        value: index,
+        message: text,
+        name: String(index),
     }));
 
     // Initialize timer variables
     let timedOut = false;     
     let remainingTime = 10;
-    
-    // Visual timer bottom bar
-    const bottomBar = new inquirer.ui.BottomBar();
-    
-    // add a spacer at the start of answer list
-    answerList.push(new inquirer.Separator());
+      
+    // Creates the answer list prompt
+    const prompt = new Select({
+        name: " -Select an answer (You have 10 seconds)- \n",
+        message: "",
+        prefix: "",
+        suffix: "",
+        hint: "",
+        choices: answerList,
+        limit: answerList.length,
+        clear: true,
+        format: () => ``,
+        footer: () => `\n${chalk.yellow(`Time Remaining: ${remainingTime}s`)}`
+    });
 
     // Start timer to count down every second
     const timerId = setInterval(() => {
                 
-        // Update bottom bar with remaining time
-        bottomBar.updateBottomBar(chalk.yellow(`Time Remaining: ${remainingTime} seconds`));
-
         // Decrease remaining time
         remainingTime -= 1;
+        
+        // forces redraw each second
+        prompt.render();           
 
         // Check if time has run out
         if (remainingTime <= 0) {
@@ -144,27 +156,14 @@ async function askQuestion(question) {
         // Increment every second 
     },  1000);
 
-   
-    
-    // Creates the answer list prompt
-    const { answer } = await inquirer.prompt([
-        {
-            type: "list",
-            name: "answer",
-            message: "",
-            choices: answerList,
-            pageSize: answerList.length,
-        },
-    ]);
-    
+    // Await the player's answer and return the index
+    const answer = Number(await prompt.run());
+
     // Stop the countdown if it’s still running
     clearInterval(timerId);
 
     // Player Answer
     const result = { answerIndex: answer, timer: timedOut };
-
-    // spacer
-    console.log("");
 
     // Returns answerIndex & timer status
     return result; 
