@@ -1,3 +1,5 @@
+/* eslint-env jest, node */
+
 //Mock questions
 jest.mock('../src/data/questions', () => ([
   {
@@ -40,7 +42,7 @@ afterEach(() => jest.clearAllMocks());
 
 
 // gameLogic fucntions
-const { showMainMenu, startGame, askQuestion } = require('../src/lib/gameLogic');
+const { showMainMenu, askQuestion } = require('../src/lib/gameLogic');
 const { showScore, resetScore } = require('../src/lib/state');
 const state = require('../src/lib/state');
 

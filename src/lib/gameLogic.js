@@ -8,7 +8,7 @@ const questions = require("../data/questions");
 
 // Game state functions
 const { showScore, resetScore } = require("./state");
-const { format } = require("path");
+//const { format } = require("path");
 
 
 // Main menu
