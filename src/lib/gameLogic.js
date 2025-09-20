@@ -60,23 +60,7 @@ async function startGame(gameState) {
 		const question = questions[questionIndex];
 
 		// Ask the question and wait for the player's choice
-		const result = await askQuestion(question);
-
-        // Player's answer
-        const playerAnswer = result.answerIndex;
-        const timedOut = result.timer;
-
-        // Check the answer and update score
-        if (timedOut) {
-            gameState.timeouts += 1;
-            console.log(chalk.yellow("\nTime is up. \n"));
-        } else if (playerAnswer === question.answerIndex) {
-            gameState.correct += 1;
-            console.log(chalk.green(`\nCorrect! ${question.choices[question.answerIndex]} \n`));
-        } else {
-            gameState.incorrect += 1;
-            console.log(chalk.red(`\nIncorrect! The correct answer was: ${question.choices[question.answerIndex]} \n`));
-        }
+		const result = await askQuestion(question, gameState);
 
 		// If there are more questions, ask to continue questions or exit game
 		const isLastQuestion = questionIndex === questions.length - 1;
@@ -107,8 +91,8 @@ async function startGame(gameState) {
 }
 
 
-// Ask one question and return the player answer or timeout
-async function askQuestion(question) {
+// Ask one question, checks the answer and returns the gameState
+async function askQuestion(question, gameState) {
     console.log(chalk.cyan(`\nQuestion: ${question.question}`));
 
     // Answer list
@@ -117,8 +101,9 @@ async function askQuestion(question) {
         name: String(index),
     }));
 
-    // Initialize timer variables
+    // Initialize function variables
     let timedOut = false;     
+    let answer = null;
     let remainingTime = 10;
       
     // Creates the answer list prompt
@@ -155,9 +140,6 @@ async function askQuestion(question) {
         // Increment every second 
     },  1000);
 
-    // Initialize answer
-    let answer = null;
-
     // Await the player's answer and return the index
     await prompt.run()
         // Player answers in time
@@ -174,11 +156,20 @@ async function askQuestion(question) {
     // Stop the countdown if it’s still running
     clearInterval(timerId);
 
-    // Player Answer
-    const result = { answerIndex: answer, timer: timedOut };
+    // Check the answer and update score
+    if (timedOut) {
+        gameState.timeouts += 1;
+        console.log(chalk.yellow("\nTime is up. \n"));
+    } else if (answer === question.answerIndex) {
+        gameState.correct += 1;
+        console.log(chalk.green(`\nCorrect! ${question.choices[question.answerIndex]} \n`));
+    } else {
+        gameState.incorrect += 1;
+        console.log(chalk.red(`\nIncorrect! The correct answer was: ${question.choices[question.answerIndex]} \n`));
+    }
 
     // Returns answerIndex & timer status
-    return result; 
+    return gameState; 
 }
 
 
