@@ -44,8 +44,11 @@ async function showMainMenu(gameState) {
         // Start game
         case "start":
         default:
+            // Resets Score
             resetScore(gameState);
-            await startGame(gameState);
+            // Starts game
+            await module.exports.startGame(gameState);
+            // Player ends game early
             return showMainMenu(gameState);
     }
 }
@@ -60,7 +63,7 @@ async function startGame(gameState) {
 		const question = questions[questionIndex];
 
 		// Ask the question and wait for the player's choice
-		const result = await askQuestion(question, gameState);
+		await module.exports.askQuestion(question, gameState);
 
 		// If there are more questions, ask to continue questions or exit game
 		const isLastQuestion = questionIndex === questions.length - 1;
@@ -101,12 +104,12 @@ async function askQuestion(question, gameState) {
         name: String(index),
     }));
 
-    // Initialize function variables
+    // Initialize function's variables
     let timedOut = false;     
     let answer = null;
     let remainingTime = 10;
       
-    // Creates the answer list prompt
+    // Creates answer list prompt
     const prompt = new Select({
         name: " -Select an answer (You have 10 seconds)- \n",
         message: "",
@@ -158,17 +161,20 @@ async function askQuestion(question, gameState) {
 
     // Check the answer and update score
     if (timedOut) {
+        // Timeout
         gameState.timeouts += 1;
         console.log(chalk.yellow("\nTime is up. \n"));
     } else if (answer === question.answerIndex) {
+        // Correct answer
         gameState.correct += 1;
         console.log(chalk.green(`\nCorrect! ${question.choices[question.answerIndex]} \n`));
     } else {
+        // Wrong answer
         gameState.incorrect += 1;
         console.log(chalk.red(`\nIncorrect! The correct answer was: ${question.choices[question.answerIndex]} \n`));
     }
 
-    // Returns answerIndex & timer status
+    // Returns gameState
     return gameState; 
 }
 

@@ -26,4 +26,6 @@ function resetScore(state) {
   state.incorrect = 0;
   state.timeouts = 0;
 }
+
+
 module.exports = { showScore, resetScore };
