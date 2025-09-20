@@ -150,14 +150,26 @@ async function askQuestion(question) {
             clearInterval(timerId);
             // Set timeout result
             timedOut = true;
-            // Simulate pressing Enter to submit no answer
-            process.stdin.emit("data", Buffer.from("\n"));
+            prompt.cancel();
         }
         // Increment every second 
     },  1000);
 
+    // Initialize answer
+    let answer = null;
+
     // Await the player's answer and return the index
-    const answer = Number(await prompt.run());
+    await prompt.run()
+        // Player answers in time
+        .then((selectedText) => {
+            timedOut = false;
+            answer = Number(selectedText); 
+        })
+        // Timeout
+        .catch(() => { 
+            timedOut = true;
+            answer = null;
+    });
 
     // Stop the countdown if it’s still running
     clearInterval(timerId);
